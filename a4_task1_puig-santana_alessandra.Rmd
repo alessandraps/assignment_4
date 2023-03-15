@@ -1,0 +1,57 @@
+---
+title: "Assignment 4, Task 1"
+author: "Alessandra Puig-Santana"
+date: "2023-03-14"
+output: html_document
+---
+
+Download data from CA DFW Oil Spill Incident Tracking from 2008 (available HERE, download as .csv). You should also find and download shapefile data for borders of California counties (we have used this data in ESM 206 and 244, or you can find your own source for California county polygons from another source or R package). 
+For this task, read in the spatial data, and create a professionally formatted and prepared HTML (showing all of your code directly or making it available with code-folding) from an .Rmd in which you: 
+Make an exploratory interactive map in tmap showing the location of oil spill events included in the data.
+Make a finalized static choropleth map in ggplot in which the fill color for each county depends on the count of inland oil spill events by county for the 2008 oil spill data
+Challenge yourself (OPTIONAL): perform a point pattern analysis to assess whether oil spills tend to be more clustered or more uniform than complete spatial randomness. Plot the G function (here, units are in degrees lat-long, use that to help decide on the r) and include a brief interpretation of the results.
+Include an overview section that briefly summarizes the dataset and your analysis.  This should include a well formatted data citation.
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Set up chunk
+library(tidyverse)
+library(here)
+library(janitor)
+library(tmap)
+library(sf)
+```
+
+```{r}
+# read in data
+oil_spills <- read_csv(here("data", "Oil_Spill_Incident_Tracking_[ds394].csv")) %>%
+  clean_names()
+
+# California county 
+counties_sf <- read_sf(here("data", "CA_Counties_TIGER2016.shp")) %>%
+  clean_names() %>%
+  select(county_name = name,
+         land_area = aland)
+
+counties_df <- counties %>%
+  clean_names() %>%
+  as.data.frame() %>%
+  select(-geometry)
+
+```
+
+# Interactive map
+## TMap
+```{r}
+# Setting up viewing mode
+tmap_mode(mode = "view")
+
+tm_shape(counties_sf) +
+  tm_polygons(alpha = 0) +
+  tm_shape(oil_spills_sf) +
+  tm_dots(col = "gold4")
+```
+
