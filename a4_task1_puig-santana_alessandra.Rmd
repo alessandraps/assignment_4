@@ -27,31 +27,52 @@ library(sf)
 
 ```{r}
 # read in data
-oil_spills <- read_csv(here("data", "Oil_Spill_Incident_Tracking_[ds394].csv")) %>%
+## oil spill data
+oil <- read_sf(here("data", "Oil_Spill_Incident_Tracking_[ds394]", "Oil_Spill_Incident_Tracking_[ds394].shp")) %>%
   clean_names()
 
-# California county 
-counties_sf <- read_sf(here("data", "CA_Counties_TIGER2016.shp")) %>%
-  clean_names() %>%
-  select(county_name = name,
-         land_area = aland)
-
-counties_df <- counties %>%
-  clean_names() %>%
-  as.data.frame() %>%
-  select(-geometry)
-
+## CA County data
+counties <- read_sf(here("data", "CA_Counties_TIGER2016.shp")) %>% 
+  clean_names() %>% 
+  mutate(county = name) %>% 
+  select(county) 
 ```
 
 # Interactive map
 ## TMap
 ```{r}
 # Setting up viewing mode
-tmap_mode(mode = "view")
+ tmap_mode(mode = "view") # setting the tmap to viewing mode
 
-tm_shape(counties_sf) +
-  tm_polygons(alpha = 0) +
-  tm_shape(oil_spills_sf) +
-  tm_dots(col = "gold4")
+tm_shape(counties) + # baselayer of counties
+  tm_polygons(alpha = 1) + # make counties transparent to view streetmap beneath it 
+  tm_shape(oil) + # add spatial points of oil spills 
+  tm_dots(col = "cyan")
+```
+
+
+```{r}
+# changing coordinate reference systems to match
+# counties %>% st_crs() # crs = 3857
+oil_3857 <- oil %>% st_transform(3857) %>% 
+  filter(inlandmari == "Inland") # filtering for inland spills
+# joining spatial datasets
+county_oil <- counties %>% st_join(oil_3857)
+# summarizing total oil spills by county
+county_oil_counts <- county_oil %>% 
+  group_by(county) %>% 
+  summarize(total_spills = sum(!is.na(dfgcontrol))) # ensuring that no spatial data is lost from the dataset
+```
+
+```{r}
+# plotting the data with ggplot
+ggplot() +
+  geom_sf(data = county_oil_counts, # scale fill based on total number of spills within the county
+          aes(fill = total_spills),
+          color = "darksalmon", size = 0.5) +
+  scale_fill_gradientn(colors = c("lavenderblush", "lightcoral", "palevioletred4")) + # gradient color scheme
+  labs(fill = "Total spills") +
+  theme_minimal() +
+  theme(legend.position = c(0.85, 0.85)) # adjusting legend position
 ```
 
