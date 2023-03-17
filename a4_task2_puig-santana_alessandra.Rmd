@@ -1,0 +1,45 @@
+---
+title: "a4_task2"
+author: "Alessandra Puig-Santana"
+date: "2023-03-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# set up chunk
+library(here)
+library(tidyverse)
+library(janitor)
+library(lubridate)
+library(tsibble)
+library(feasts)
+library(fable)
+library(cowplot)
+```
+
+```{r}
+# read in data
+fish_willamette <- read_csv(here("data", "willamette_fish_passage.csv")) %>% 
+  clean_names() %>%
+  mutate(date = lubridate::mdy(date)) %>% # turning the date into mdy format with lubridate 
+  as_tsibble(key = NULL, index = date) %>% # changing the format to a tsibble for use in time series
+  select(date, coho, jack_coho, steelhead) %>%  # selecting for fish species of interest
+  replace(is.na(.), 0)
+```
+
+```{r}
+fish_longer_df <- fish_willamette %>%
+  pivot_longer(cols = 2:4, names_to = "species", values_to = "count") %>% 
+  mutate(species = case_when(species == "coho" ~ "Coho",
+                             species == "jack_coho" ~ "Jack Coho", 
+                             species == "steelhead" ~ "Steelhead"))
+
+# month df
+fish_month <- fish_longer %>% 
+  index_by(month = ~yearmonth(.)) %>% # index by month
+  group_by(species) %>% # species groups
+  summarize(monthly_total = sum(count)) %>% # total counts by month
+  mutate(year = year(month)) # adding a year column
+```
+
